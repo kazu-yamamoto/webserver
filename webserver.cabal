@@ -7,7 +7,7 @@ License-File:           LICENSE
 Synopsis:               HTTP server library
 Description:            A simple but practical library of HTTP server.
 Category:               Netowrk
-Cabal-Version:          >= 1.2
+Cabal-Version:          >= 1.6
 Build-Type:             Simple
 library
   GHC-Options:          -Wall -O2
@@ -21,6 +21,6 @@ library
                         Network.Web.Server.Lang,
                         Network.Web.Server.Params,
                         Network.Web.Server.Range
-  Build-Depends:        base >= 4, parsec >= 3,
+  Build-Depends:        base >= 4 && < 10, parsec >= 3,
                         haskell98, network, bytestring, containers,
                         filepath, time, unix, process, c10k
