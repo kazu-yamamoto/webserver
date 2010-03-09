@@ -35,10 +35,10 @@ import System.FilePath
   OK, Not Found, Not Modified, Moved Permanently, etc;
   partial getting; language negotication;
   CGI, chunked data for CGI output;
-  If http://example.com/path does not exist but
-  http://example.com/path/ exists, the created 'WebServer'
-  redirects it. http://example.com/path/ is mapped to
-  /somewhere/path/ by 'mapper' and index.html and index.html.en
+  If http:\/\/example.com\/path does not exist but
+  http:\/\/example.com\/path\/ exists, the created 'WebServer'
+  redirects it. http:\/\/example.com\/path\/ is mapped to
+  \/somewhere\/path\/ by 'mapper' and index.html and index.html.en
   automatically added and try to read by 'obtain'.
   If Accept-Language is "xx" and "yy" in order,
   index.html.xx, index.html.yy, index.html and index.html.en
