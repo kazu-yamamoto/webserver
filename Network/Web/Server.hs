@@ -1,5 +1,5 @@
 {-|
-  A library for HTTP server.
+  HTTP server library.
 -}
 module Network.Web.Server (connection, WebServer, WebConfig(..)) where
 

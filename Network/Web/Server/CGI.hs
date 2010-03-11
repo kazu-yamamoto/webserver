@@ -5,7 +5,6 @@ import Control.Concurrent
 import Data.ByteString.Lazy.Char8 (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.Char
-import Network.TCPInfo
 import Network.URI
 import Network.Web.HTTP
 import Network.Web.Server.Params

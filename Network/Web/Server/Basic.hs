@@ -15,7 +15,6 @@ import Data.ByteString.Lazy.Char8 (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.List
 import Data.Time
-import Network.TCPInfo
 import Network.URI hiding (path)
 import Network.Web.Date
 import Network.Web.HTTP
