@@ -24,6 +24,7 @@ import Data.Map (Map)
 import qualified Data.Map as Map hiding (Map)
 import Data.Maybe
 import IO hiding (try)
+import System.IO.Error hiding (try)
 import Network.URI
 import Network.Web.Params
 import Text.Printf
@@ -156,7 +157,8 @@ receive :: Handle -> IO (Maybe Request)
 receive hdl = do
     mreq <- try $ receiveRequest hdl
     case mreq of
-      Left  e   -> if isEOFError e
+      Left  e   -> if isEOFError e ||
+                      show (ioeGetErrorType e) == "resource vanished"
                    then throw TerminatedByClient
                    else return Nothing
       Right req -> return $ Just req
@@ -228,7 +230,9 @@ respond h ver persist rsp = do
     sendResponseFields h ver persist rsp
     hPutStr h crlf
     sendResponseBody h ver rsp
-    hFlush h
+    hFlush h `catch` ignore
+  where
+    ignore _ = return ()
 
 sendStatusLine :: Handle -> Version -> Response -> IO ()
 sendStatusLine h ver rsp = do
