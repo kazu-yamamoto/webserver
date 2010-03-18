@@ -5,20 +5,7 @@ module Network.Web.Utils where
 
 import Data.List
 import Network.Socket
-import Network.URI
 import System.IO
-
-{-|
-  Getting a hostname from 'URI'.
--}
-uriHostName :: URI -> String
-uriHostName uri = maybe "" uriRegName $ uriAuthority uri
-
-{-|
-  Making a URL string from 'URI' without port.
--}
-toURLwoPort :: URI -> String
-toURLwoPort uri = uriScheme uri ++ "//" ++ uriHostName uri ++ uriPath uri ++ uriQuery uri
 
 ----------------------------------------------------------------
 

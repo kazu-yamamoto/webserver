@@ -25,8 +25,8 @@ import qualified Data.Map as Map hiding (Map)
 import Data.Maybe
 import IO hiding (try)
 import System.IO.Error hiding (try)
-import Network.URI
 import Network.Web.Params
+import Network.Web.URI
 import Text.Printf
 
 ----------------------------------------------------------------

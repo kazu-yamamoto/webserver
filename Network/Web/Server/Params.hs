@@ -2,7 +2,7 @@ module Network.Web.Server.Params where
 
 import Data.ByteString.Lazy.Char8 (ByteString)
 import Data.Time
-import Network.URI
+import Network.Web.URI
 import Network.Web.Utils
 
 {-|

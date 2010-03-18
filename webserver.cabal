@@ -14,6 +14,7 @@ library
   Exposed-Modules:      Network.Web.HTTP
                         Network.Web.Server
                         Network.Web.Server.Basic
+                        Network.Web.URI
                         Network.Web.Utils
   Other-Modules:        Network.Web.Date
                         Network.Web.Params

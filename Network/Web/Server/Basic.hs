@@ -15,7 +15,6 @@ import Data.ByteString.Lazy.Char8 (ByteString)
 import qualified Data.ByteString.Lazy.Char8 as LBS
 import Data.List
 import Data.Time
-import Network.URI hiding (path)
 import Network.Web.Date
 import Network.Web.HTTP
 import Network.Web.Server
@@ -23,6 +22,7 @@ import Network.Web.Server.CGI
 import Network.Web.Server.Lang
 import Network.Web.Server.Params
 import Network.Web.Server.Range
+import Network.Web.URI
 import Network.Web.Utils
 import System.FilePath
 
