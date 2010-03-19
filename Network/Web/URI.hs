@@ -1,14 +1,22 @@
+{-|
+  Parser for URI
+-}
+
 module Network.Web.URI (
     URI, uriScheme, uriAuthority, uriPath, uriQuery, uriFragment
   , URIAuth, uriUserInfo, uriRegName, uriPort
-  , uriHostName, toURLwoPort, parseURI, isAbsoluteURI
-  , unEscapeString
+  , parseURI
+  , uriHostName, toURLwoPort
+  , isAbsoluteURI, unEscapeString
   ) where
 
 import Data.Char
 import Data.List
 import Network.BSD
 
+{-|
+  Abstract data type for URI
+-}
 data URI = URI {
     uriScheme :: String
   , uriAuthority :: Maybe URIAuth
@@ -17,30 +25,23 @@ data URI = URI {
   , uriFragment :: String
 } deriving Show
 
+{-|
+  Abstract data type for URI Authority
+-}
 data URIAuth = URIAuth {
     uriUserInfo :: String
   , uriRegName :: String
   , uriPort :: String
 } deriving Show
 
-{-|
-  Getting a hostname from 'URI'.
--}
-uriHostName :: URI -> String
-uriHostName uri = maybe "" uriRegName $ uriAuthority uri
-
-{-|
-  Making a URL string from 'URI' without port.
--}
-toURLwoPort :: URI -> String
-toURLwoPort uri = uriScheme uri ++ "//" ++ uriHostName uri ++ uriPath uri ++ uriQuery uri
+----------------------------------------------------------------
 
 {-|
   Parsing URI.
 -}
 parseURI :: String -> Maybe URI
 parseURI url = Just URI {
-    uriScheme = "http"
+    uriScheme = "http:"
   , uriAuthority = Just URIAuth {
         uriUserInfo = ""
       , uriRegName = host
@@ -72,9 +73,31 @@ parseAuthority hostServ
   where
     (host,serv) = break (==':') hostServ
 
+----------------------------------------------------------------
+
+{-|
+  Getting a hostname from 'URI'.
+-}
+uriHostName :: URI -> String
+uriHostName uri = maybe "" uriRegName $ uriAuthority uri
+
+{-|
+  Making a URL string from 'URI' without port.
+-}
+toURLwoPort :: URI -> String
+toURLwoPort uri = uriScheme uri ++ "//" ++ uriHostName uri ++ uriPath uri ++ uriQuery uri
+
+----------------------------------------------------------------
+
+{-|
+  Checking whether or not URI starts with \"http://\".
+-}
 isAbsoluteURI :: String -> Bool
 isAbsoluteURI url = "http://" `isPrefixOf` url
 
+{-|
+  Decoding the %XX encoding.
+-}
 unEscapeString :: String -> String
 unEscapeString [] = ""
 unEscapeString ('%':c1:c2:cs)
