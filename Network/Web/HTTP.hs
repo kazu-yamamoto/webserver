@@ -47,7 +47,7 @@ data Request = Request {
   , reqBody    :: Maybe ByteString
   -- | Length of entity body from Content-Length:
   , reqLength  :: Integer
-}
+} deriving Show
 
 {-|
   Abstract data type of HTTP response.
@@ -276,6 +276,7 @@ sendChunk h body = do
       then do
         putChunk fcnk $ toHex (LBS.length fcnk)
         putLastChunk
+        hPutStr h crlf
       else do
         putChunk fcnk defSize
         sendChunk h rest
@@ -290,7 +291,6 @@ sendChunk h body = do
         hPutStr h crlf
     putLastChunk = do
         hPutStr h "0"
-        hPutStr h crlf
         hPutStr h crlf
 
 ----------------------------------------------------------------
