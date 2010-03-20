@@ -38,9 +38,9 @@ data Path =
 {-|
   A type for URL parameter.
 -}
-type URLParameter = S.ByteString
+type URLParameter = String
 
 {-|
   A type for script name.
 -}
-type ScriptName = S.ByteString
+type ScriptName = String

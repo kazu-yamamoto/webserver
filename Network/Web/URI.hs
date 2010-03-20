@@ -9,7 +9,7 @@ module Network.Web.URI (
   , URIAuth, uriUserInfo, uriRegName, uriPort
   , parseURI
   , uriHostName, toURLwoPort
-  , isAbsoluteURI, unEscapeString
+  , isAbsoluteURI, unEscapeString, unEscapeByteString
   ) where
 
 import qualified Data.ByteString.Char8 as S
@@ -101,19 +101,29 @@ isAbsoluteURI url = "http://" `S.isPrefixOf` url
 {-|
   Decoding the %XX encoding.
 -}
-unEscapeString :: S.ByteString -> S.ByteString
-unEscapeString "" = ""
-unEscapeString bs
+unEscapeByteString :: S.ByteString -> S.ByteString
+unEscapeByteString "" = ""
+unEscapeByteString bs
   | S.head bs == '%' && S.length bs >= 3
-    && isHexDigit c1 && isHexDigit c2    = dc <:> unEscapeString cs
+    && isHexDigit c1 && isHexDigit c2    = dc <:> unEscapeByteString cs
   where
     [_,c1,c2] = S.unpack $ S.take 3 bs
     cs = S.drop 3 bs
     dc = chr $ digitToInt c1 * 16 + digitToInt c2
     (<:>) = S.cons
-
-unEscapeString bs = c <:> unEscapeString cs
+unEscapeByteString bs = c <:> unEscapeByteString cs
   where
     c = S.head bs
     cs = S.tail bs
     (<:>) = S.cons
+
+{-|
+   Decoding the %XX encoding.
+ -}
+unEscapeString :: String -> String
+unEscapeString [] = ""
+unEscapeString ('%':c1:c2:cs)
+  | isHexDigit c1 && isHexDigit c2 = dc : unEscapeString cs
+  where
+    dc = chr $ digitToInt c1 * 16 + digitToInt c2
+unEscapeString (c:cs) = c : unEscapeString cs

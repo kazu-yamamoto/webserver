@@ -60,7 +60,7 @@ makeEnv :: BasicConfig -> Request -> URLParameter -> ScriptName -> ENVVARS
 makeEnv cnf req param snm = addLength . addType . addCookie $ pathOrQuery param ++ baseEnv
   where
     baseEnv = [("GATEWAY_INTERFACE", gatewayInterface)
-              ,("SCRIPT_NAME",       S.unpack snm)
+              ,("SCRIPT_NAME",       snm)
               ,("REQUEST_METHOD",    show (reqMethod req))
               ,("SERVER_NAME",       S.unpack . uriHostName . reqURI $ req)
               ,("SERVER_PORT",       myPort (tcpInfo cnf))
@@ -68,12 +68,12 @@ makeEnv cnf req param snm = addLength . addType . addCookie $ pathOrQuery param 
               ,("SERVER_PROTOCOL",   show (reqVersion req))
               ,("SERVER_SOFTWARE",   S.unpack . serverName $ cnf)]
     pathOrQuery par
-      | par == ""          = [("QUERY_STRING","")
-                             ,("PATH_INFO", "")]
-      | S.head par == '?'  = [("QUERY_STRING", S.unpack . unEscapeString . S.tail $ par)
-                             ,("PATH_INFO", "")]
-      | otherwise          = [("QUERY_STRING","")
-                             ,("PATH_INFO", S.unpack . unEscapeString $ par)]
+      | par == ""       = [("QUERY_STRING","")
+                          ,("PATH_INFO", "")]
+      | head par == '?' = [("QUERY_STRING", unEscapeString . tail $ par)
+                          ,("PATH_INFO", "")]
+      | otherwise       = [("QUERY_STRING","")
+                          ,("PATH_INFO", unEscapeString $ par)]
     addLength = add "CONTENT_LENGTH" (lookupField FkContentLength req)
     addType   = add "CONTENT_TYPE" (lookupField FkContentType req)
     addCookie = add "HTTP_COOKIE" (lookupField FkCookie req)
