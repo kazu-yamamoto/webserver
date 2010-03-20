@@ -7,10 +7,10 @@ import Control.Concurrent
 import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Char
+import Network.TCPInfo
 import Network.Web.HTTP
 import Network.Web.Server.Params
 import Network.Web.URI
-import Network.Web.Utils
 import System.IO
 import System.Posix.IO
 import System.Process

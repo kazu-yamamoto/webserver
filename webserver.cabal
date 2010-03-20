@@ -15,7 +15,6 @@ library
                         Network.Web.Server
                         Network.Web.Server.Basic
                         Network.Web.URI
-                        Network.Web.Utils
   Other-Modules:        Network.Web.Date
                         Network.Web.Params
                         Network.Web.Server.CGI

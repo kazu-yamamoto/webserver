@@ -17,6 +17,7 @@ import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.List
 import Data.Time
+import Network.TCPInfo
 import Network.Web.Date
 import Network.Web.HTTP
 import Network.Web.Server
@@ -24,7 +25,6 @@ import Network.Web.Server.CGI
 import Network.Web.Server.Lang
 import Network.Web.Server.Params
 import Network.Web.Server.Range
-import Network.Web.Utils
 import Network.Web.URI
 import System.FilePath
 

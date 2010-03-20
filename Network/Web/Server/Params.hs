@@ -3,8 +3,8 @@ module Network.Web.Server.Params where
 import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Time
+import Network.TCPInfo
 import Network.Web.URI
-import Network.Web.Utils
 
 {-|
   The configuration for the basic web server.
