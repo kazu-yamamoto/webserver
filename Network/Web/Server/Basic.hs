@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 {-|
   Creating basic 'WebServer'.
   Created 'WebServer' can handle GET \/ HEAD \/ POST;
@@ -11,8 +13,8 @@ module Network.Web.Server.Basic (basicServer,
 
 import Control.Applicative
 import Control.Monad
-import Data.ByteString.Lazy.Char8 (ByteString)
-import qualified Data.ByteString.Lazy.Char8 as LBS
+import qualified Data.ByteString.Char8      as S
+import qualified Data.ByteString.Lazy.Char8 as L
 import Data.List
 import Data.Time
 import Network.Web.Date
@@ -22,8 +24,8 @@ import Network.Web.Server.CGI
 import Network.Web.Server.Lang
 import Network.Web.Server.Params
 import Network.Web.Server.Range
-import Network.Web.URI
 import Network.Web.Utils
+import Network.Web.URI
 import System.FilePath
 
 ----------------------------------------------------------------
@@ -59,7 +61,7 @@ basicServer cnf mreq = case mreq of
     addPeerToLog rsp = rsp { rspLogMsg = logmsg}
     peer = peerAddr (tcpInfo cnf)
     logmsg = "[" ++ peer ++ "] " ++ maybe "" uri mreq
-    uri req = "\"" ++ toURLwoPort (reqURI req) ++ "\""
+    uri req = "\"" ++ (S.unpack . toURLwoPort . reqURI) req ++ "\""
 
 ----------------------------------------------------------------
 
@@ -99,7 +101,7 @@ processPOST :: BasicConfig -> Request -> IO Response
 processPOST cnf req = tryPost cnf req
 
 languages :: Request -> [String]
-languages req = maybe [] (parseLang) $ lookupField FkAcceptLanguage req
+languages req = maybe [] (parseLang . S.unpack) $ lookupField FkAcceptLanguage req
 
 ----------------------------------------------------------------
 
@@ -164,7 +166,7 @@ tryGetFile' cnf req file lang = do
           val <- obtain cnf file' $ Just (skip,len)
           return . Just $ response st val len ct modified
         Just st ->
-          return . Just $ response st LBS.empty 0 ct modified
+          return . Just $ response st L.empty 0 ct modified
         _       -> return Nothing -- never reached
 
 ifmodified :: Request -> Integer -> UTCTime -> Maybe Status
@@ -193,8 +195,8 @@ unconditional :: Request -> Integer -> UTCTime -> Maybe Status
 unconditional req size _ =
     maybe (Just OK) (range size) $ lookupField FkRange req
 
-range :: Integer -> String -> Maybe Status
-range size rng = case skipAndSize rng size of
+range :: Integer -> S.ByteString -> Maybe Status
+range size rng = case skipAndSize (S.unpack rng) size of
   Nothing         -> Just RequestedRangeNotSatisfiable
   Just (skip,len) -> Just (PartialContent skip len)
 
@@ -227,9 +229,9 @@ tryHeadFile' cnf file lang = do
 redirectURI :: URI -> Maybe URI
 redirectURI uri =
    let path = uriPath uri
-   in if hasTrailingPathSeparator path
+   in if "/" `S.isSuffixOf` path
       then Nothing
-      else Just uri { uriPath = addTrailingPathSeparator path}
+      else Just uri { uriPath = path `S.append` "/" }
 
 tryRedirect :: BasicConfig -> URI -> [String] -> IO (Maybe Response)
 tryRedirect cnf uri langs =
@@ -265,20 +267,20 @@ notFound = return $ Just responseNotFound
 
 ----------------------------------------------------------------
 
-response :: Status -> ByteString -> Integer -> CT -> String -> Response
+response :: Status -> L.ByteString -> Integer -> CT -> HttpDate -> Response
 response st val len ct modified = makeResponse2 st (Just val) (Just len) kvs
   where
     kvs = [(FkContentType,ct),(FkLastModified,modified)]
 
 ----------------------------------------------------------------
 
-responseOK :: CT -> String -> Response
-responseOK ct modified = makeResponse2 OK (Just LBS.empty) (Just 0) kvs
+responseOK :: CT -> HttpDate -> Response
+responseOK ct modified = makeResponse2 OK (Just L.empty) (Just 0) kvs
   where
     kvs = [(FkContentType,ct),(FkLastModified,modified)]
 
 responseRedirect :: URI -> Response
-responseRedirect rurl = makeResponse MovedPermanently [(FkLocation,show rurl)]
+responseRedirect rurl = makeResponse MovedPermanently [(FkLocation,S.pack . show $ rurl)]
 
 responseNotFound :: Response
 responseNotFound = makeResponse NotFound []

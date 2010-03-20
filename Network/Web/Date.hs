@@ -1,16 +1,19 @@
 module Network.Web.Date (parseDate, utcToDate, HttpDate) where
 
+import qualified Data.ByteString.Char8 as S
 import Data.Time
 import Locale
 import Control.Monad
 
-type HttpDate = String
+type HttpDate = S.ByteString
 
 -- xxx: ClockTime -> UTCTime
 ----------------------------------------------------------------
 
-parseDate :: String -> Maybe UTCTime
-parseDate str = rfc1123Date str `mplus` rfc850Date str `mplus` asctimeDate str
+parseDate :: S.ByteString -> Maybe UTCTime
+parseDate bs = rfc1123Date cs `mplus` rfc850Date cs `mplus` asctimeDate cs
+  where
+    cs = S.unpack bs
 
 ----------------------------------------------------------------
 
@@ -46,4 +49,4 @@ asctimeDate = parseTime defaultTimeLocale asctimeFormat
 ----------------------------------------------------------------
 
 utcToDate :: UTCTime -> HttpDate
-utcToDate = formatTime defaultTimeLocale preferredFormat
+utcToDate = S.pack . formatTime defaultTimeLocale preferredFormat

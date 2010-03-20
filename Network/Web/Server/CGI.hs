@@ -1,9 +1,11 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Network.Web.Server.CGI (tryGetCGI) where
 
 import Control.Applicative
 import Control.Concurrent
-import Data.ByteString.Lazy.Char8 (ByteString)
-import qualified Data.ByteString.Lazy.Char8 as LBS
+import qualified Data.ByteString.Char8      as S
+import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Char
 import Network.Web.HTTP
 import Network.Web.Server.Params
@@ -45,38 +47,38 @@ createHandle = do
 
 type ENVVARS = [(String,String)]
 
-execCGI :: FilePath -> ENVVARS -> Maybe Handle -> Maybe Handle -> Maybe (Handle,ByteString) -> IO ()
+execCGI :: FilePath -> ENVVARS -> Maybe Handle -> Maybe Handle -> Maybe (Handle,L.ByteString) -> IO ()
 execCGI prog envVars sti sto mhb = do
   runProcess prog [] Nothing (Just envVars) sti sto Nothing
   case mhb of
     Nothing -> return ()
     Just (whdl,body) -> do
-      LBS.hPut whdl body
+      L.hPut whdl body
       hClose whdl
 
 makeEnv :: BasicConfig -> Request -> URLParameter -> ScriptName -> ENVVARS
 makeEnv cnf req param snm = addLength . addType . addCookie $ pathOrQuery param ++ baseEnv
   where
     baseEnv = [("GATEWAY_INTERFACE", gatewayInterface)
-              ,("SCRIPT_NAME",       snm)
+              ,("SCRIPT_NAME",       S.unpack snm)
               ,("REQUEST_METHOD",    show (reqMethod req))
-              ,("SERVER_NAME",       uriHostName (reqURI req))
+              ,("SERVER_NAME",       S.unpack . uriHostName . reqURI $ req)
               ,("SERVER_PORT",       myPort (tcpInfo cnf))
               ,("REMOTE_ADDR",       peerAddr (tcpInfo cnf))
               ,("SERVER_PROTOCOL",   show (reqVersion req))
-              ,("SERVER_SOFTWARE",   serverName cnf)]
+              ,("SERVER_SOFTWARE",   S.unpack . serverName $ cnf)]
     pathOrQuery par
-      | par == ""        = [("QUERY_STRING","")
-                           ,("PATH_INFO", "")]
-      | head par == '?'  = [("QUERY_STRING", unEscapeString(tail par))
-                           ,("PATH_INFO", "")]
-      | otherwise        = [("QUERY_STRING","")
-                           ,("PATH_INFO", unEscapeString par)]
+      | par == ""          = [("QUERY_STRING","")
+                             ,("PATH_INFO", "")]
+      | S.head par == '?'  = [("QUERY_STRING", S.unpack . unEscapeString . S.tail $ par)
+                             ,("PATH_INFO", "")]
+      | otherwise          = [("QUERY_STRING","")
+                             ,("PATH_INFO", S.unpack . unEscapeString $ par)]
     addLength = add "CONTENT_LENGTH" (lookupField FkContentLength req)
     addType   = add "CONTENT_TYPE" (lookupField FkContentType req)
     addCookie = add "HTTP_COOKIE" (lookupField FkCookie req)
     add _   Nothing    envs = envs
-    add key (Just val) envs = (key,val) : envs
+    add key (Just val) envs = (key,S.unpack val) : envs
 
 processCGIoutput :: Handle -> IO Response
 processCGIoutput rhdl = do
@@ -85,11 +87,11 @@ processCGIoutput rhdl = do
     Nothing -> return responseInternalServerError
     Just _  -> do
       let st = maybe OK id (lookupField' FkStatus flds >>= toStatus)
-      responseAny st flds <$> LBS.hGetContents rhdl
+      responseAny st flds <$> L.hGetContents rhdl
 
 ----------------------------------------------------------------
 
-responseAny :: Status -> Fields -> ByteString -> Response
+responseAny :: Status -> Fields -> L.ByteString -> Response
 responseAny st flds val = makeResponse3 st (Just val) Nothing flds'
   where
     flds' = case lookupField' FkSetCookie2 flds of

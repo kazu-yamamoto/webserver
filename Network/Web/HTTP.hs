@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-|
   HTTP library for HTTP server.
 -}
@@ -16,12 +17,11 @@ module Network.Web.HTTP (receive, respond,
 
 import Control.Applicative
 import Control.Exception (try, throw)
-import Data.ByteString.Lazy.Char8 (ByteString)
-import qualified Data.ByteString.Lazy.Char8 as LBS hiding (ByteString)
+import qualified Data.ByteString.Char8      as S
+import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Char
 import Data.List
-import Data.Map (Map)
-import qualified Data.Map as Map hiding (Map)
+import qualified Data.Map as M
 import Data.Maybe
 import IO hiding (try)
 import System.IO.Error hiding (try)
@@ -44,7 +44,7 @@ data Request = Request {
   -- | Key-values of request header
   , reqFields  :: Fields
   -- | Entity body if exists
-  , reqBody    :: Maybe ByteString
+  , reqBody    :: Maybe L.ByteString
   -- | Length of entity body from Content-Length:
   , reqLength  :: Integer
 } deriving Show
@@ -56,11 +56,11 @@ data Response = Response {
   -- | Response status
     rspStatus  :: Status
   , rspFields  :: Fields
-  , rspBody    :: Maybe ByteString -- Nothing -> No entity / No CL:
-                                   -- Just bs
-                                   -- Just bs.empty
-  , rspLength  :: Maybe Integer    -- Nothing -> chunked or close
-                                   -- Just x  -> CL: x
+  , rspBody    :: Maybe L.ByteString -- Nothing -> No entity / No CL:
+                                     -- Just bs
+                                     -- Just bs.empty
+  , rspLength  :: Maybe Integer      -- Nothing -> chunked or close
+                                     -- Just x  -> CL: x
   , rspLogMsg  :: String
 }
 
@@ -118,15 +118,15 @@ makeResponse st kvs = defaultResponse { rspStatus = st
                                       , rspFields = flds
                                       }
   where
-    cs = "<html><body>" ++ show st ++ "</body></html>\n"
-    len = fromIntegral $ length cs
-    body = LBS.pack cs
+    (<+>) = L.append
+    body = "<html><body>" <+> L.pack (show st) <+> "</body></html>\n"
+    len = fromIntegral $ L.length body
     flds = toFields kvs
 
 {-|
   A function to make 'Response'.
 -}
-makeResponse2 :: Status -> Maybe ByteString -> Maybe Integer -> [(FieldKey,FieldValue)] -> Response
+makeResponse2 :: Status -> Maybe L.ByteString -> Maybe Integer -> [(FieldKey,FieldValue)] -> Response
 makeResponse2 st mval mlen kvs = defaultResponse { rspStatus = st
                                                  , rspBody   = mval
                                                  , rspLength = mlen
@@ -138,7 +138,7 @@ makeResponse2 st mval mlen kvs = defaultResponse { rspStatus = st
 {-|
   A function to make 'Response'.
 -}
-makeResponse3 :: Status -> Maybe ByteString -> Maybe Integer -> Fields -> Response
+makeResponse3 :: Status -> Maybe L.ByteString -> Maybe Integer -> Fields -> Response
 makeResponse3 st mval mlen flds = defaultResponse { rspStatus = st
                                                   , rspBody   = mval
                                                   , rspLength = mlen
@@ -173,14 +173,14 @@ receiveRequest hdl = do
     let req2 = req1 { reqURI = uri, reqFields = flds }
     receiveBody hdl flds req2
 
-isEOH :: String -> Bool
-isEOH l = null l || l == "\r"
+isEOH :: S.ByteString -> Bool
+isEOH l = S.null l || l == "\r"
 
-receiveRequestLine :: Handle -> IO (Method,String,Version)
+receiveRequestLine :: Handle -> IO (Method,S.ByteString,Version)
 receiveRequestLine hdl = parseRequestLine <$> skipNullLines
   where
     skipNullLines = do
-      l <- hGetLine hdl
+      l <- S.hGetLine hdl
       if isEOH l
          then skipNullLines
          else return l
@@ -192,27 +192,29 @@ receiveFields :: Handle -> IO Fields
 receiveFields hdl = toFields . map parseField <$> getHeaderLines
   where
     getHeaderLines = do
-      l <- hGetLine hdl
+      l <- S.hGetLine hdl
       if isEOH l
          then return []
          else (l:) <$> getHeaderLines
 
-toURI :: String -> Fields -> IO URI
+toURI :: S.ByteString -> Fields -> IO URI
 toURI url fields = maybe (fail "toURI") return $ toURI' url fields
 
-toURI' :: String -> Fields -> Maybe URI
+toURI' :: S.ByteString -> Fields -> Maybe URI
 toURI' url fields
   | isAbsoluteURI url = parseURI url
   | otherwise         = lookupField' FkHost fields >>= \host ->
-                        parseURI $ "http://" ++ host ++ url
+                        parseURI $ "http://" +++ host +++ url
+  where
+    (+++) = S.append
 
 receiveBody :: Handle -> Fields -> Request -> IO Request
 receiveBody hdl flds req =
     case lookupField' FkContentLength flds of
       Nothing -> return req
-      Just cs  -> do
-        let len = read cs
-        body <- LBS.hGet hdl (fromIntegral len)
+      Just bs  -> do
+        let Just (len,_) = S.readInteger bs -- xxx
+        body <- L.hGet hdl (fromIntegral len)
         return req { reqBody = Just body, reqLength = len }
 
 ----------------------------------------------------------------
@@ -225,83 +227,83 @@ receiveBody hdl flds req =
 -}
 
 respond :: Handle -> Version -> Persist -> Response -> IO ()
-respond h ver persist rsp = do
-    sendStatusLine h ver rsp
-    sendResponseFields h ver persist rsp
-    hPutStr h crlf
-    sendResponseBody h ver rsp
-    hFlush h `catch` ignore
+respond hdl ver persist rsp = do
+    sendStatusLine hdl ver rsp
+    sendResponseFields hdl ver persist rsp
+    S.hPutStr hdl crlf
+    sendResponseBody hdl ver rsp
+    hFlush hdl `catch` ignore
   where
     ignore _ = return ()
 
 sendStatusLine :: Handle -> Version -> Response -> IO ()
-sendStatusLine h ver rsp = do
-    hPutStr h $ show ver
-    hPutStr h spc
-    hPutStr h $ show (rspStatus rsp) -- including reason-phrase
-    hPutStr h crlf
+sendStatusLine hdl ver rsp = do
+    S.hPutStr hdl $ fromVersion ver
+    S.hPutStr hdl spc
+    S.hPutStr hdl $ fromStatus (rspStatus rsp) -- including reason-phrase
+    S.hPutStr hdl crlf
 
 sendResponseFields :: Handle -> Version -> Persist -> Response -> IO ()
-sendResponseFields h ver persist rsp = do
+sendResponseFields hdl ver persist rsp = do
     putFields
     putContentLength
     putTransferEncoding
     putConnection
  where
-    putFields = hPutStr h . concatMap composeField . fromFields $ getFields rsp
+    putFields = S.hPutStr hdl . S.concat . map composeField . fromFields $ getFields rsp
     putContentLength =
       case rspBody rsp >> rspLength rsp of
-        Just len -> hPutStr h $ composeField (FkContentLength, show len)
+        Just len -> S.hPutStr hdl $ composeField (FkContentLength, S.pack (show len))
         Nothing -> return ()
     putTransferEncoding =
       if ver == HTTP11 && isJust (rspBody rsp) && isNothing (rspLength rsp)
-      then hPutStr h $ composeField (FkTransferEncoding, "chunked")
+      then S.hPutStr hdl $ composeField (FkTransferEncoding, "chunked")
       else return ()
-    putConnection = hPutStr h $ composeField (FkConnection, show persist)
+    putConnection = S.hPutStr hdl $ composeField (FkConnection, fromPersist persist)
 
 sendResponseBody :: Handle -> Version -> Response -> IO ()
-sendResponseBody h ver rsp =
+sendResponseBody hdl ver rsp =
   case rspBody rsp of
     Just body -> case rspLength rsp of
-      Just _  -> LBS.hPut h body
+      Just _  -> L.hPut hdl body
       Nothing -> if ver == HTTP10
-                 then LBS.hPut h body
-                 else sendChunk h body
+                 then L.hPut hdl body
+                 else sendChunk hdl body
     Nothing   -> return ()
 
-sendChunk :: Handle -> ByteString -> IO ()
-sendChunk h body = do
-    let (fcnk,rest) = LBS.splitAt chunkSize body
-    if LBS.null rest
+sendChunk :: Handle -> L.ByteString -> IO ()
+sendChunk hdl body = do
+    let (fcnk,rest) = L.splitAt chunkSize body
+    if L.null rest
       then do
-        putChunk fcnk $ toHex (LBS.length fcnk)
+        putChunk fcnk $ toHex (L.length fcnk)
         putLastChunk
-        hPutStr h crlf
+        S.hPutStr hdl crlf
       else do
         putChunk fcnk defSize
-        sendChunk h rest
+        sendChunk hdl rest
   where
     chunkSize = 1024 * 4
     defSize = toHex chunkSize
-    toHex = printf "%X"
+    toHex = S.pack . printf "%X"
     putChunk cnk siz = do
-        hPutStr h siz
-        hPutStr h crlf
-        LBS.hPut h cnk
-        hPutStr h crlf
+        S.hPutStr hdl siz
+        S.hPutStr hdl crlf
+        L.hPut hdl cnk
+        S.hPutStr hdl crlf
     putLastChunk = do
-        hPutStr h "0"
-        hPutStr h crlf
+        S.hPutStr hdl "0"
+        S.hPutStr hdl crlf
 
 ----------------------------------------------------------------
 
 {-|
   Abstract data type for Key-values of HTTP header.
 -}
-newtype Fields = Fields (Map FieldKey FieldValue) deriving Show
+newtype Fields = Fields (M.Map FieldKey FieldValue) deriving Show
 
 emptyFields :: Fields
-emptyFields = Fields Map.empty
+emptyFields = Fields M.empty
 
 {-|
   Looking up the HTTP field value.
@@ -315,7 +317,7 @@ lookupField key comm  = lookupField' key (getFields comm)
 lookupField' :: FieldKey -> Fields -> Maybe FieldValue
 lookupField' key (Fields fields) = maybe Nothing (Just . trim) mvalue
   where
-    mvalue = Map.lookup key fields
+    mvalue = M.lookup key fields
 
 {-|
   Inserting the HTTP field.
@@ -329,50 +331,52 @@ insertField key val comm = setFields comm fields
   Inserting the HTTP field.
 -}
 insertField' :: FieldKey -> FieldValue -> Fields -> Fields
-insertField' key val (Fields fields) = Fields (Map.insert key val fields)
+insertField' key val (Fields fields) = Fields (M.insert key val fields)
 
 toFields :: [(FieldKey,FieldValue)] -> Fields
-toFields kvs = Fields (Map.fromList kvs)
+toFields kvs = Fields (M.fromList kvs)
 
 fromFields :: Fields -> [(FieldKey,FieldValue)]
-fromFields (Fields fields) = Map.toList fields
+fromFields (Fields fields) = M.toList fields
 
 copyFields :: Fields -> Fields
 copyFields = toFields . map (\(x,y) -> (x, trim y)) . fromFields
 
 ----------------------------------------------------------------
 
-composeField :: (FieldKey,FieldValue) -> String
-composeField (k,v) = fromFieldKey k ++ ": " ++ v ++ crlf
+composeField :: (FieldKey,FieldValue) -> S.ByteString
+composeField (k,v) = fromFieldKey k +++ ": " +++ v +++ crlf
+  where
+    (+++) = S.append
 
-parseField :: String -> (FieldKey,FieldValue)
-parseField l = let kv = break (==':') (chomp l)
+parseField :: S.ByteString -> (FieldKey,FieldValue)
+parseField l = let kv = S.break (==':') (chomp l)
                in toKeyValue kv
   where
-    toKeyValue (k,"")  = (toFieldKey k, "")
-    toKeyValue (k,_:v) = (toFieldKey k, v) -- v is trimmed by lookupField
+    toKeyValue (k,"") = (toFieldKey k, "")
+    toKeyValue (k,bs) = (toFieldKey k, S.tail bs) -- bs is trimmed by lookupField
 
-parseRequestLine :: String -> (Method,String,Version)
-parseRequestLine l = let (m,l') = break (==' ') (chomp l)
-                         (u,v') = break (==' ') (chop l')
+parseRequestLine :: S.ByteString -> (Method,S.ByteString,Version)
+parseRequestLine l = let (m,l') = S.break (==' ') (chomp l)
+                         (u,v') = S.break (==' ') (chop l')
                          v = trim v'
-                     in (read m, u, read v)
+                     in (toMethod m, u, toVersion v)
 
 ----------------------------------------------------------------
 
-chop :: String -> String
-chop = dropWhile isSpace
+chop :: S.ByteString -> S.ByteString
+chop = S.dropWhile isSpace
 
-chomp :: String -> String
-chomp = fst . break (=='\r')
+chomp :: S.ByteString -> S.ByteString
+chomp = fst . S.break (=='\r')
 
-trim :: String -> String
-trim = reverse . chop . reverse . chop
+trim :: S.ByteString -> S.ByteString
+trim = S.reverse . chop . S.reverse . chop
 
 ----------------------------------------------------------------
 
-crlf :: String
+crlf :: S.ByteString
 crlf = "\r\n"
 
-spc :: String
+spc :: S.ByteString
 spc = " "

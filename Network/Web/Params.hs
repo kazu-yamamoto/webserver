@@ -1,19 +1,24 @@
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
 {-|
   Parameters of HTTP.
 -}
-module Network.Web.Params (Method(..), Version(..), Status(..),
-                           toStatus, badStatus,
-                           Persist(..), ServerException(..),
-                           FieldKey(..), FieldValue,
-                           toFieldKey, fromFieldKey,
-                           CT, textHtml, selectContentType) where
+module Network.Web.Params (
+    Method(..), toMethod
+  , Version(..), toVersion, fromVersion
+  , Status(..), toStatus, fromStatus, badStatus
+  , Persist(..), toPersist, fromPersist
+  , ServerException(..)
+  , FieldKey(..), FieldValue
+  , toFieldKey, fromFieldKey
+  , CT, textHtml, selectContentType
+  ) where
 
 import Control.Exception
+import qualified Data.ByteString.Char8 as S
 import Data.Char
-import Data.Map (Map)
-import qualified Data.Map as Map hiding (Map)
+import qualified Data.Map as M
 import Data.Typeable
 
 ----------------------------------------------------------------
@@ -24,33 +29,27 @@ import Data.Typeable
 data Method = GET | HEAD | POST | PUT | DELETE | TRACE | CONNECT
             | UnknownMethod deriving (Show,Eq,Enum,Bounded)
 
-methodAlist :: [(String,Method)]
+methodAlist :: [(S.ByteString,Method)]
 methodAlist = let methods = [minBound..maxBound]
-              in zip (map show methods) methods
+              in zip (map (S.pack . show) methods) methods
 
-readMethod :: String -> Method
-readMethod s = maybe UnknownMethod id $ lookup s methodAlist
-
-instance Read Method where
-    readsPrec _ s = [(readMethod s,"")]
+toMethod :: S.ByteString -> Method
+toMethod s = maybe UnknownMethod id $ lookup s methodAlist
 
 ----------------------------------------------------------------
 
 {-|
   Versions of HTTP.
 -}
-data Version = HTTP10 | HTTP11 deriving Eq
+data Version = HTTP10 | HTTP11 deriving (Eq,Show)
 
-instance Show Version where
-   show HTTP10    = "HTTP/1.0"
-   show HTTP11    = "HTTP/1.1"
+fromVersion :: Version -> S.ByteString
+fromVersion HTTP10    = "HTTP/1.0"
+fromVersion HTTP11    = "HTTP/1.1"
 
-readVersion :: String -> Version
-readVersion "HTTP/1.1" = HTTP11
-readVersion _          = HTTP10
-
-instance Read Version where
-    readsPrec _ s = [(readVersion s,"")]
+toVersion :: S.ByteString -> Version
+toVersion "HTTP/1.1" = HTTP11
+toVersion _          = HTTP10
 
 ----------------------------------------------------------------
 
@@ -76,53 +75,54 @@ data Status = Continue | SwitchingProtocols
             -- 5xx
             | InternalServerError | NotImplemented | BadGateway
             | ServiceUnavailable | GatewayTimeout | HTTPVersionNotSupported
+            deriving Show
 
-instance Show Status where
-    show Continue = "100 Continue"
-    show SwitchingProtocols = "101 Switching Protocols"
-    show OK = "200 OK"
-    show Created = "201 Created"
-    show Accepted = "202 Accepted"
-    show NonAuthoritativeInformation = "203 Non-Authoritative Information"
-    show NoContent = "204 No Content"
-    show ResetContent = "205 Reset Content"
-    show (PartialContent _ _) = "206 Partial Content"
-    show MultipleChoices = "300 Multiple Choices"
-    show MovedPermanently = "301 Moved Permanently"
-    show Found = "302 Found"
-    show SeeOther = "303 See Other"
-    show NotModified = "304 Not Modified"
-    show UseProxy = "305 Use Proxy"
-    show TemporaryRedirect = "307 Temporary Redirect"
-    show BadRequest = "400 Bad Request"
-    show Unauthorized = "401 Unauthorized"
-    show PaymentRequired = "402 Payment Required"
-    show Forbidden = "403 Forbidden"
-    show NotFound = "404 Not Found"
-    show MethodNotAllowed = "405 Method Not Allowed"
-    show NotAcceptable = "406 Not Acceptable"
-    show ProxyAuthenticationRequired = "407 Proxy Authentication Required"
-    show RequestTimeout = "408 RequestTimeout"
-    show Conflict = "409 Conflict"
-    show Gone = "410 Gone"
-    show LengthRequired = "411 Length Required"
-    show PreconditionFailed = "412 Precondition Failed"
-    show RequestEntityTooLarge = "413 Request Entity Too Large"
-    show RequestURITooLarge = "414 Request-URI Too Large"
-    show UnsupportedMediaType = "415 Unsupported Media Type"
-    show RequestedRangeNotSatisfiable = "416 Requested Range Not Satisfiable"
-    show ExpectationFailed = "417 Expectation Failed"
-    show InternalServerError = "500 Internal Server Error"
-    show NotImplemented = "501 Not Implemented"
-    show BadGateway = "502 Bad Gateway"
-    show ServiceUnavailable = "503 Service Unavailable"
-    show GatewayTimeout = "504 Gateway Time-out"
-    show HTTPVersionNotSupported = "505 HTTP Version Not Supported"
+fromStatus :: Status -> S.ByteString
+fromStatus Continue = "100 Continue"
+fromStatus SwitchingProtocols = "101 Switching Protocols"
+fromStatus OK = "200 OK"
+fromStatus Created = "201 Created"
+fromStatus Accepted = "202 Accepted"
+fromStatus NonAuthoritativeInformation = "203 Non-Authoritative Information"
+fromStatus NoContent = "204 No Content"
+fromStatus ResetContent = "205 Reset Content"
+fromStatus (PartialContent _ _) = "206 Partial Content"
+fromStatus MultipleChoices = "300 Multiple Choices"
+fromStatus MovedPermanently = "301 Moved Permanently"
+fromStatus Found = "302 Found"
+fromStatus SeeOther = "303 See Other"
+fromStatus NotModified = "304 Not Modified"
+fromStatus UseProxy = "305 Use Proxy"
+fromStatus TemporaryRedirect = "307 Temporary Redirect"
+fromStatus BadRequest = "400 Bad Request"
+fromStatus Unauthorized = "401 Unauthorized"
+fromStatus PaymentRequired = "402 Payment Required"
+fromStatus Forbidden = "403 Forbidden"
+fromStatus NotFound = "404 Not Found"
+fromStatus MethodNotAllowed = "405 Method Not Allowed"
+fromStatus NotAcceptable = "406 Not Acceptable"
+fromStatus ProxyAuthenticationRequired = "407 Proxy Authentication Required"
+fromStatus RequestTimeout = "408 RequestTimeout"
+fromStatus Conflict = "409 Conflict"
+fromStatus Gone = "410 Gone"
+fromStatus LengthRequired = "411 Length Required"
+fromStatus PreconditionFailed = "412 Precondition Failed"
+fromStatus RequestEntityTooLarge = "413 Request Entity Too Large"
+fromStatus RequestURITooLarge = "414 Request-URI Too Large"
+fromStatus UnsupportedMediaType = "415 Unsupported Media Type"
+fromStatus RequestedRangeNotSatisfiable = "416 Requested Range Not Satisfiable"
+fromStatus ExpectationFailed = "417 Expectation Failed"
+fromStatus InternalServerError = "500 Internal Server Error"
+fromStatus NotImplemented = "501 Not Implemented"
+fromStatus BadGateway = "502 Bad Gateway"
+fromStatus ServiceUnavailable = "503 Service Unavailable"
+fromStatus GatewayTimeout = "504 Gateway Time-out"
+fromStatus HTTPVersionNotSupported = "505 HTTP Version Not Supported"
 
 {-|
   Converting numeric status to 'Status'.
 -}
-toStatus :: String -> Maybe Status
+toStatus :: S.ByteString -> Maybe Status
 toStatus "200" = Just OK
 toStatus "302" = Just Found
 toStatus "400" = Just BadRequest
@@ -160,7 +160,7 @@ data FieldKey = FkAcceptLanguage
               | FkSetCookie2
               | FkStatus
               | FkTransferEncoding
-              | FkOther String
+              | FkOther S.ByteString
               deriving (Eq,Show,Ord)
 
 fieldKeyList :: [FieldKey]
@@ -183,7 +183,7 @@ fieldKeyList = [ FkAcceptLanguage
                , FkStatus
                , FkTransferEncoding ]
 
-fieldStringList :: [String]
+fieldStringList :: [S.ByteString]
 fieldStringList = [ "Accept-Language"
                   , "Cache-Control"
                   , "Connection"
@@ -206,42 +206,51 @@ fieldStringList = [ "Accept-Language"
 {-|
   Field value of HTTP header.
 -}
-type FieldValue = String
+type FieldValue = S.ByteString
 
-stringFieldKey :: Map FieldValue FieldKey
-stringFieldKey = Map.fromList (zip fieldStringList fieldKeyList)
+stringFieldKey :: M.Map FieldValue FieldKey
+stringFieldKey = M.fromList (zip fieldStringList fieldKeyList)
 
-fieldKeyString :: Map FieldKey FieldValue
-fieldKeyString = Map.fromList (zip fieldKeyList fieldStringList)
+fieldKeyString :: M.Map FieldKey FieldValue
+fieldKeyString = M.fromList (zip fieldKeyList fieldStringList)
 
 {-|
   Converting field key to 'FieldKey'.
 -}
-toFieldKey :: String -> FieldKey
-toFieldKey str = maybe (FkOther cstr) id $ Map.lookup cstr stringFieldKey
+toFieldKey :: S.ByteString -> FieldKey
+toFieldKey str = maybe (FkOther cstr) id $ M.lookup cstr stringFieldKey
   where
     cstr = capitalize str
 
 {-|
   Converting 'FieldKey' to field key.
 -}
-fromFieldKey :: FieldKey -> String
+fromFieldKey :: FieldKey -> S.ByteString
 fromFieldKey (FkOther cstr) = cstr
-fromFieldKey key = maybe err id $ Map.lookup key fieldKeyString
+fromFieldKey key = maybe err id $ M.lookup key fieldKeyString
   where
     err = error "fromFieldKey"
 
-capitalize :: String -> String
+(<:>) :: Char -> S.ByteString -> S.ByteString
+(<:>) = S.cons
+
+capitalize :: S.ByteString -> S.ByteString
 capitalize s = toup s
     where
-  toup [] = []
-  toup (x:xs)
-    | isLetter x = toUpper x : stay xs
-    | otherwise  =         x : toup xs
-  stay [] = []
-  stay (x:xs)
-    | isLetter x =         x : stay xs
-    | otherwise  =         x : toup xs
+  toup "" = ""
+  toup bs
+    | isLetter x = toUpper x <:> stay xs
+    | otherwise  =         x <:> toup xs
+    where
+      x  = S.head bs
+      xs = S.tail bs
+  stay "" = ""
+  stay bs
+    | isLetter x =         x <:> stay xs
+    | otherwise  =         x <:> toup xs
+    where
+      x  = S.head bs
+      xs = S.tail bs
 
 ----------------------------------------------------------------
 
@@ -249,7 +258,7 @@ capitalize s = toup s
   The type for Content-Type.
 -}
 
-type CT = String
+type CT = S.ByteString
 
 {-|
   Selecting a value of Content-Type from a file suffix.
@@ -289,20 +298,17 @@ contentTypeDB = [ (".html", textHtml)
 ----------------------------------------------------------------
 
 -- | The type for persist connection or not
-data Persist = Close | Keep | PerUnknown deriving Eq
+data Persist = Close | Keep | PerUnknown deriving (Eq,Show)
 
-instance Show Persist where
-   show Close      = "close"
-   show Keep       = "keep-alive"
-   show PerUnknown = "unknown"
+fromPersist :: Persist -> S.ByteString
+fromPersist Close      = "close"
+fromPersist Keep       = "keep-alive"
+fromPersist PerUnknown = "unknown"
 
-instance Read Persist where
-    readsPrec _ s = [(readPersist s,"")]
-
-readPersist :: String -> Persist
-readPersist cs = readPersist' (downcase cs)
+toPersist :: S.ByteString -> Persist
+toPersist cs = readPersist' (downcase cs)
   where
-    downcase = map toLower
+    downcase = S.map toLower
     readPersist' "close"      = Close
     readPersist' "keep-alive" = Keep
     readPersist' _            = PerUnknown

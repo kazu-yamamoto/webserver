@@ -6,6 +6,7 @@ module Network.Web.Server (connection, WebServer, WebConfig(..)) where
 import Control.Exception
 import Control.Monad
 import Control.Applicative
+import qualified Data.ByteString.Char8 as S
 import Data.Char
 import Data.Maybe
 import Data.Time
@@ -110,14 +111,14 @@ sendResponse' hdl ver persist rsp hook = do
 
 -- CGI and HTTP/1.0 -> Close
 
-checkPersist :: Version -> Maybe String -> Response -> Persist
+checkPersist :: Version -> Maybe S.ByteString -> Response -> Persist
 checkPersist HTTP11 Nothing     _   = Keep
 checkPersist HTTP11 (Just cnct) _
-    | read cnct == Close            = Close
+    | toPersist cnct == Close       = Close
     | otherwise                     = Keep
 checkPersist HTTP10 Nothing     _   = Close
 checkPersist HTTP10 (Just cnct) rsp
-    | read cnct == Keep        = if isJust (rspBody rsp) &&
+    | toPersist cnct == Keep        = if isJust (rspBody rsp) &&
                                     isNothing (rspLength rsp)
                                  then Close
                                  else Keep

@@ -1,6 +1,7 @@
 module Network.Web.Server.Params where
 
-import Data.ByteString.Lazy.Char8 (ByteString)
+import qualified Data.ByteString.Char8      as S
+import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Time
 import Network.Web.URI
 import Network.Web.Utils
@@ -13,12 +14,12 @@ data BasicConfig = BasicConfig {
    mapper :: URI -> Path
    -- | Resource obtaining function. The second argument is
    --   (offset of the resource, and length from the offset).
- , obtain :: FilePath -> Maybe (Integer,Integer) -> IO ByteString
+ , obtain :: FilePath -> Maybe (Integer,Integer) -> IO L.ByteString
    -- | A function to return the size of the resource and
    --   its modification time if exists.
  , info   :: FilePath -> IO (Maybe (Integer, UTCTime))
    -- | A server name specified the Server: field.
- , serverName :: String
+ , serverName :: S.ByteString
    -- | 'TCPInfo' for passing CGI. (See c10k library.)
  , tcpInfo :: TCPInfo
 }
@@ -37,9 +38,9 @@ data Path =
 {-|
   A type for URL parameter.
 -}
-type URLParameter = String
+type URLParameter = S.ByteString
 
 {-|
   A type for script name.
 -}
-type ScriptName = String
+type ScriptName = S.ByteString
