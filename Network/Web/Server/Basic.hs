@@ -280,7 +280,7 @@ responseOK ct modified = makeResponse2 OK (Just L.empty) (Just 0) kvs
     kvs = [(FkContentType,ct),(FkLastModified,modified)]
 
 responseRedirect :: URI -> Response
-responseRedirect rurl = makeResponse MovedPermanently [(FkLocation,S.pack . show $ rurl)]
+responseRedirect rurl = makeResponse MovedPermanently [(FkLocation, toURL rurl)]
 
 responseNotFound :: Response
 responseNotFound = makeResponse NotFound []
