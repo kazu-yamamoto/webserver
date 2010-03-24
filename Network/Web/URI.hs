@@ -8,7 +8,7 @@ module Network.Web.URI (
     URI, uriScheme, uriAuthority, uriPath, uriQuery, uriFragment
   , URIAuth, uriUserInfo, uriRegName, uriPort
   , parseURI
-  , uriHostName, toURLwoPort
+  , uriHostName, uriPortNumber, toURL, toURLwoPort
   , isAbsoluteURI, unEscapeString, unEscapeByteString
   ) where
 
@@ -81,6 +81,25 @@ parseAuthority hostServ
 -}
 uriHostName :: URI -> S.ByteString
 uriHostName uri = maybe "" uriRegName $ uriAuthority uri
+
+{-|
+  Getting a port number from 'URI'.
+-}
+uriPortNumber :: URI -> S.ByteString
+uriPortNumber uri = maybe "" uriPort $ uriAuthority uri
+
+{-|
+  Making a URL string from 'URI'.
+-}
+toURL :: URI -> S.ByteString
+toURL uri = uriScheme uri +++ "//" +++ hostServ +++ uriPath uri +++ uriQuery uri
+  where
+    host = uriHostName uri
+    serv = uriPortNumber uri
+    hostServ = if S.null serv
+               then host
+               else host +++ ":" +++ serv
+    (+++) = S.append
 
 {-|
   Making a URL string from 'URI' without port.
