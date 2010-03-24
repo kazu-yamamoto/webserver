@@ -283,6 +283,8 @@ appOct = "application/octet-stream"
 
 contentTypeDB :: [(FilePath,CT)]
 contentTypeDB = [ (".html", textHtml)
+                , (".en",   textHtml) -- xxx
+                , (".ja",   textHtml) -- xxx
                 , (".txt",  textPlain)
                 , (".css",  "text/css")
                 , (".js",   "application/javascript")
