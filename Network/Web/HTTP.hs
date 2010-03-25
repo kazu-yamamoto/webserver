@@ -232,9 +232,7 @@ respond hdl ver persist rsp = do
     sendResponseFields hdl ver persist rsp
     S.hPutStr hdl crlf
     sendResponseBody hdl ver rsp
-    hFlush hdl `catch` ignore
-  where
-    ignore _ = return ()
+    hFlush hdl
 
 sendStatusLine :: Handle -> Version -> Response -> IO ()
 sendStatusLine hdl ver rsp = do
