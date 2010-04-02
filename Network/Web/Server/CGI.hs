@@ -67,12 +67,14 @@ makeEnv cnf req cgi = addLength . addType . addCookie $ baseEnv
               ,("SERVER_PROTOCOL",   show (reqVersion req))
               ,("SERVER_SOFTWARE",   S.unpack . serverName $ cnf)
               ,("PATH_INFO",         unEscapeString . pathInfo $ cgi)
-              ,("QUERY_STRING",      unEscapeString . tail . queryString $ cgi)]
+              ,("QUERY_STRING",      unEscapeString . safeTail . queryString $ cgi)]
     addLength = add "CONTENT_LENGTH" (lookupField FkContentLength req)
     addType   = add "CONTENT_TYPE" (lookupField FkContentType req)
     addCookie = add "HTTP_COOKIE" (lookupField FkCookie req)
     add _   Nothing    envs = envs
     add key (Just val) envs = (key,S.unpack val) : envs
+    safeTail "" = ""
+    safeTail xs = tail xs
 
 processCGIoutput :: Handle -> IO Response
 processCGIoutput rhdl = do
