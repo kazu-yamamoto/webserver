@@ -20,7 +20,6 @@ import Control.Exception (try, throw)
 import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Char
-import Data.List
 import qualified Data.Map as M
 import Data.Maybe
 import IO hiding (try)

@@ -138,9 +138,9 @@ lookupAndParseDate key req = lookupField key req >>= parseDate
 tryGet :: BasicConfig -> Request -> URI -> [String] -> IO (Maybe Response)
 tryGet cnf req uri langs = tryGet' $ mapper cnf uri
   where
-    tryGet' None                = return Nothing
-    tryGet' (CGI cgi param snm) = tryGetCGI  cnf req cgi param snm
-    tryGet' (File file)         = tryGetFile cnf req file langs
+    tryGet' None          = return Nothing
+    tryGet' (File file)   = tryGetFile cnf req file langs
+    tryGet' (PathCGI cgi) = tryGetCGI  cnf req cgi
 
 tryGetFile :: BasicConfig -> Request -> FilePath -> [String] -> IO (Maybe Response)
 tryGetFile cnf req file langs
@@ -206,7 +206,7 @@ tryHead :: BasicConfig -> URI -> [String] -> IO (Maybe Response)
 tryHead cnf uri langs = tryHead' (mapper cnf uri)
   where
     tryHead' None        = return Nothing
-    tryHead' (CGI _ _ _) = return Nothing
+    tryHead' (PathCGI _) = return Nothing
     tryHead' (File file) = tryHeadFile cnf file langs
 
 tryHeadFile :: BasicConfig -> FilePath -> [String] -> IO (Maybe Response)
@@ -238,7 +238,7 @@ tryRedirect cnf uri langs =
     redirectURI uri >>| \ruri -> tryRedirect' (mapper cnf ruri) ruri
   where
     tryRedirect' None           _ = return Nothing
-    tryRedirect' (CGI _ _ _)    _ = return Nothing
+    tryRedirect' (PathCGI _)    _ = return Nothing
     tryRedirect' (File file) ruri = runAnyMaybeIO $ map (tryRedirectFile cnf ruri file) langs
 
 tryRedirectFile :: BasicConfig -> URI -> FilePath -> String -> IO (Maybe Response)
@@ -253,8 +253,8 @@ tryRedirectFile cnf ruri file lang = do
 
 tryPost :: BasicConfig -> Request -> IO Response
 tryPost cnf req = case mapper cnf (reqURI req) of
-  CGI cgi param snm -> do
-    mres <- tryGetCGI cnf req cgi param snm
+  PathCGI cgi -> do
+    mres <- tryGetCGI cnf req cgi
     case mres of
       Nothing  -> undefined -- never reached
       Just res -> return res

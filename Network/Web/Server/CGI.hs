@@ -6,7 +6,6 @@ import Control.Applicative
 import Control.Concurrent
 import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
-import Data.Char
 import Network.TCPInfo
 import Network.Web.HTTP
 import Network.Web.Server.Params
@@ -21,14 +20,14 @@ gatewayInterface = "CGI/1.1"
 
 ----------------------------------------------------------------
 
-tryGetCGI :: BasicConfig -> Request -> FilePath -> URLParameter -> ScriptName -> IO (Maybe Response)
-tryGetCGI cnf req prog param snm = processCGI `catch` const internalError
+tryGetCGI :: BasicConfig -> Request -> CGI -> IO (Maybe Response)
+tryGetCGI cnf req cgi = processCGI `catch` const internalError
   where
     processCGI = do
       (mrhdl0,mhb)  <- maybeCreateHandle
       (rhdl1,whdl1) <- createHandle
-      let envVars = makeEnv cnf req param snm
-      forkIO $ execCGI prog envVars mrhdl0 (Just whdl1) mhb
+      let envVars = makeEnv cnf req cgi
+      forkIO $ execCGI (progPath cgi) envVars mrhdl0 (Just whdl1) mhb
       mrsp <- timeout (10 * 1000000) $ processCGIoutput rhdl1
       maybe internalError (return . Just) mrsp
     maybeCreateHandle = case reqBody req of
@@ -56,24 +55,19 @@ execCGI prog envVars sti sto mhb = do
       L.hPut whdl body
       hClose whdl
 
-makeEnv :: BasicConfig -> Request -> URLParameter -> ScriptName -> ENVVARS
-makeEnv cnf req param snm = addLength . addType . addCookie $ pathOrQuery param ++ baseEnv
+makeEnv :: BasicConfig -> Request -> CGI -> ENVVARS
+makeEnv cnf req cgi = addLength . addType . addCookie $ baseEnv
   where
     baseEnv = [("GATEWAY_INTERFACE", gatewayInterface)
-              ,("SCRIPT_NAME",       snm)
+              ,("SCRIPT_NAME",       scriptName cgi)
               ,("REQUEST_METHOD",    show (reqMethod req))
               ,("SERVER_NAME",       S.unpack . uriHostName . reqURI $ req)
               ,("SERVER_PORT",       myPort (tcpInfo cnf))
               ,("REMOTE_ADDR",       peerAddr (tcpInfo cnf))
               ,("SERVER_PROTOCOL",   show (reqVersion req))
-              ,("SERVER_SOFTWARE",   S.unpack . serverName $ cnf)]
-    pathOrQuery par
-      | par == ""       = [("QUERY_STRING","")
-                          ,("PATH_INFO", "")]
-      | head par == '?' = [("QUERY_STRING", unEscapeString . tail $ par)
-                          ,("PATH_INFO", "")]
-      | otherwise       = [("QUERY_STRING","")
-                          ,("PATH_INFO", unEscapeString $ par)]
+              ,("SERVER_SOFTWARE",   S.unpack . serverName $ cnf)
+              ,("PATH_INFO",         unEscapeString . pathInfo $ cgi)
+              ,("QUERY_STRING",      unEscapeString . tail . queryString $ cgi)]
     addLength = add "CONTENT_LENGTH" (lookupField FkContentLength req)
     addType   = add "CONTENT_TYPE" (lookupField FkContentType req)
     addCookie = add "HTTP_COOKIE" (lookupField FkCookie req)

@@ -4,17 +4,14 @@
 module Network.Web.Server (connection, WebServer, WebConfig(..)) where
 
 import Control.Exception
-import Control.Monad
 import Control.Applicative
 import qualified Data.ByteString.Char8 as S
-import Data.Char
 import Data.Maybe
 import Data.Time
 import IO
 import Network.Web.HTTP hiding (receive,respond)
 import qualified Network.Web.HTTP as HTTP (receive,respond)
 import Network.Web.Date
-import Network.Web.Params
 import System.Timeout
 
 ----------------------------------------------------------------

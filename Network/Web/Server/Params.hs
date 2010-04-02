@@ -33,14 +33,12 @@ data Path =
     -- | 'URI' is converted into a resource (typically a file).
   | File FilePath
     -- | 'URI' is converted into CGI.
-  | CGI FilePath URLParameter ScriptName deriving (Eq,Show)
+  | PathCGI CGI
+  deriving (Eq,Show)
 
-{-|
-  A type for URL parameter.
--}
-type URLParameter = String
-
-{-|
-  A type for script name.
--}
-type ScriptName = String
+data CGI = CGI {
+    progPath    :: FilePath
+  , scriptName  :: String
+  , pathInfo    :: String
+  , queryString :: String
+  } deriving (Eq,Show)
