@@ -36,9 +36,16 @@ data Path =
   | PathCGI CGI
   deriving (Eq,Show)
 
+{-|
+  Internal information of CGI converted from 'URI'.
+-}
 data CGI = CGI {
+    -- | A porgram path to be executed.
     progPath    :: FilePath
+    -- | A script name.
   , scriptName  :: String
+    -- | A path information.
   , pathInfo    :: String
+    -- | A query string.
   , queryString :: String
   } deriving (Eq,Show)
