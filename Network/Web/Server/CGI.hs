@@ -6,6 +6,7 @@ import Control.Applicative
 import Control.Concurrent
 import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
+import Data.Maybe
 import Network.TCPInfo
 import Network.Web.HTTP
 import Network.Web.Server.Params
@@ -82,7 +83,7 @@ processCGIoutput rhdl = do
   case lookupField' FkContentType flds of
     Nothing -> return responseInternalServerError
     Just _  -> do
-      let st = maybe OK id (lookupField' FkStatus flds >>= toStatus)
+      let st = fromMaybe OK (lookupField' FkStatus flds >>= toStatus)
       responseAny st flds <$> L.hGetContents rhdl
 
 ----------------------------------------------------------------

@@ -36,7 +36,7 @@ ranges = sepBy1 (range <|> suffixRange) (spaces >> char ',' >> spaces)
 
 range :: Parser Range
 range = (,) <$> ((Just <$> num) <* char '-')
-            <*> (option Nothing (Just <$> num))
+            <*> option Nothing (Just <$> num)
 
 suffixRange :: Parser Range
 suffixRange = (,) Nothing <$> (char '-' *> (Just <$> num))

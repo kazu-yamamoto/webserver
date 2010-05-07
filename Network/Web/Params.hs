@@ -19,6 +19,7 @@ import Control.Exception
 import qualified Data.ByteString.Char8 as S
 import Data.Char
 import qualified Data.Map as M
+import Data.Maybe
 import Data.Typeable
 
 ----------------------------------------------------------------
@@ -34,7 +35,7 @@ methodAlist = let methods = [minBound..maxBound]
               in zip (map (S.pack . show) methods) methods
 
 toMethod :: S.ByteString -> Method
-toMethod s = maybe UnknownMethod id $ lookup s methodAlist
+toMethod s = fromMaybe UnknownMethod $ lookup s methodAlist
 
 ----------------------------------------------------------------
 
@@ -133,7 +134,7 @@ toStatus _     = Nothing
   Returning 'True' for 4xx and 5xx.
 -}
 badStatus :: Status -> Bool
-badStatus status = n == '4' || n == '5'
+badStatus status = n `elem` "45"
   where
     n:_ = show status
 
@@ -218,7 +219,7 @@ fieldKeyString = M.fromList (zip fieldKeyList fieldStringList)
   Converting field key to 'FieldKey'.
 -}
 toFieldKey :: S.ByteString -> FieldKey
-toFieldKey str = maybe (FkOther cstr) id $ M.lookup cstr stringFieldKey
+toFieldKey str = fromMaybe (FkOther cstr) $ M.lookup cstr stringFieldKey
   where
     cstr = capitalize str
 
@@ -227,7 +228,7 @@ toFieldKey str = maybe (FkOther cstr) id $ M.lookup cstr stringFieldKey
 -}
 fromFieldKey :: FieldKey -> S.ByteString
 fromFieldKey (FkOther cstr) = cstr
-fromFieldKey key = maybe err id $ M.lookup key fieldKeyString
+fromFieldKey key = fromMaybe err $ M.lookup key fieldKeyString
   where
     err = error "fromFieldKey"
 
@@ -265,7 +266,7 @@ type CT = S.ByteString
 -}
 selectContentType :: String -> CT
 selectContentType ""  = textPlain
-selectContentType ext = maybe appOct id (lookup lext contentTypeDB)
+selectContentType ext = fromMaybe appOct $ lookup lext contentTypeDB
   where
     lext = map toLower ext
 

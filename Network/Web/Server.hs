@@ -61,14 +61,14 @@ session hdl svr cnf = do
     rsp <- runServer svr mreq
     persist <- sendResponse hdl cnf rsp mreq
     case persist of
-      Close -> closedHook cnf $ "Connection is closed"
+      Close -> closedHook cnf "Connection is closed"
       Keep  -> session hdl svr cnf
       _     -> return () -- never reached
   where
     runServer server mreq = do
         date <- utcToDate <$> getCurrentTime
         addDate date <$> server mreq
-    addDate date rsp  = insertField FkDate date rsp
+    addDate = insertField FkDate
 
 ----------------------------------------------------------------
 

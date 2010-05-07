@@ -57,7 +57,7 @@ basicServer cnf mreq = case mreq of
       _     -> adjust <$> pure responseNotImplement
   where
     adjust = addServer . addPeerToLog
-    addServer rsp = insertField FkServer (serverName cnf) rsp
+    addServer = insertField FkServer (serverName cnf)
     addPeerToLog rsp = rsp { rspLogMsg = logmsg}
     peer = peerAddr (tcpInfo cnf)
     logmsg = "[" ++ peer ++ "] " ++ maybe "" uri mreq
@@ -98,7 +98,7 @@ processHEAD cnf req = do
              , notFound ] -- always Just
 
 processPOST :: BasicConfig -> Request -> IO Response
-processPOST cnf req = tryPost cnf req
+processPOST = tryPost
 
 languages :: Request -> [String]
 languages req = maybe [] (parseLang . S.unpack) $ lookupField FkAcceptLanguage req

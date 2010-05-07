@@ -17,15 +17,16 @@ module Network.Web.HTTP (receive, respond,
 
 import Control.Applicative
 import Control.Exception (try, throw)
+import Control.Monad
 import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Char
 import qualified Data.Map as M
 import Data.Maybe
 import IO hiding (try)
-import System.IO.Error hiding (try)
 import Network.Web.Params
 import Network.Web.URI
+import System.IO.Error hiding (try)
 import Text.Printf
 
 ----------------------------------------------------------------
@@ -253,9 +254,8 @@ sendResponseFields hdl ver persist rsp = do
         Just len -> S.hPutStr hdl $ composeField (FkContentLength, S.pack (show len))
         Nothing -> return ()
     putTransferEncoding =
-      if ver == HTTP11 && isJust (rspBody rsp) && isNothing (rspLength rsp)
-      then S.hPutStr hdl $ composeField (FkTransferEncoding, "chunked")
-      else return ()
+      when (ver == HTTP11 && isJust (rspBody rsp) && isNothing (rspLength rsp)) $
+          S.hPutStr hdl $ composeField (FkTransferEncoding, "chunked")
     putConnection = S.hPutStr hdl $ composeField (FkConnection, fromPersist persist)
 
 sendResponseBody :: Handle -> Version -> Response -> IO ()
