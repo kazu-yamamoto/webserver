@@ -18,13 +18,14 @@ library
                         Network.Web.Server
                         Network.Web.Server.Basic
                         Network.Web.URI
-  Other-Modules:        Network.Web.Date
+  Other-Modules:        Parsec
+                        Network.Web.Date
                         Network.Web.Params
                         Network.Web.Server.CGI
                         Network.Web.Server.Lang
                         Network.Web.Server.Params
                         Network.Web.Server.Range
-  Build-Depends:        base >= 4 && < 5, parsec >= 3,
+  Build-Depends:        base >= 4 && < 5, parsec,
                         haskell98, network, bytestring, containers,
                         filepath, time, unix, process, c10k
 Source-Repository head

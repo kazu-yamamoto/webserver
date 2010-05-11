@@ -1,10 +1,8 @@
 module Network.Web.Server.Lang (parseLang) where
 
-import Control.Applicative ((<$>),(<$),(<*>),(*>))
 import Data.List
 import Data.Ord
-import Text.Parsec
-import Text.Parsec.String
+import Parsec
 
 parseLang :: String -> [String]
 parseLang xs = case parse acceptLanguage "" xs of
