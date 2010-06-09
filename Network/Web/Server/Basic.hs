@@ -16,6 +16,7 @@ import Control.Monad
 import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.List
+import Data.Maybe
 import Data.Time
 import Network.TCPInfo
 import Network.Web.Date
@@ -253,12 +254,9 @@ tryRedirectFile cnf ruri file lang = do
 
 tryPost :: BasicConfig -> Request -> IO Response
 tryPost cnf req = case mapper cnf (reqURI req) of
-  PathCGI cgi -> do
-    mres <- tryGetCGI cnf req cgi
-    case mres of
-      Nothing  -> undefined -- never reached
-      Just res -> return res
-  _            -> return responseBadRequest
+    -- never reached to undefined
+    PathCGI cgi -> fromMaybe undefined <$> tryGetCGI cnf req cgi
+    _           -> return responseBadRequest
 
 ----------------------------------------------------------------
 

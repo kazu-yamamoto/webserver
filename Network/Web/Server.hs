@@ -3,15 +3,15 @@
 -}
 module Network.Web.Server (connection, WebServer, WebConfig(..)) where
 
-import Control.Exception
 import Control.Applicative
+import Control.Exception
 import qualified Data.ByteString.Char8 as S
 import Data.Maybe
 import Data.Time
-import IO
-import Network.Web.HTTP hiding (receive,respond)
-import qualified Network.Web.HTTP as HTTP (receive,respond)
 import Network.Web.Date
+import qualified Network.Web.HTTP as HTTP (receive,respond)
+import Network.Web.HTTP hiding (receive,respond)
+import System.IO
 import System.Timeout
 
 ----------------------------------------------------------------
@@ -73,11 +73,7 @@ session hdl svr cnf = do
 ----------------------------------------------------------------
 
 recvRequest :: Handle -> WebConfig -> IO (Maybe Request)
-recvRequest hdl cnf = do
-    mmreq <- timeout tm (HTTP.receive hdl)
-    case mmreq of
-      Nothing   -> throw TimeOut
-      Just mreq -> return mreq
+recvRequest hdl cnf = fromMaybe (throw TimeOut) <$> timeout tm (HTTP.receive hdl)
  where
    microseconds = 1000000
    tm = connectionTimer cnf * microseconds

@@ -41,9 +41,7 @@ tryGetCGI cnf req cgi = processCGI `catch` const internalError
 createHandle :: IO (Handle,Handle)
 createHandle = do
   (rfd,wfd) <- createPipe
-  rhdl <- fdToHandle rfd
-  whdl <- fdToHandle wfd
-  return (rhdl,whdl)
+  (,) <$> fdToHandle rfd <*> fdToHandle wfd
 
 type ENVVARS = [(String,String)]
 

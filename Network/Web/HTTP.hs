@@ -23,9 +23,9 @@ import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Char
 import qualified Data.Map as M
 import Data.Maybe
-import IO hiding (try)
 import Network.Web.Params
 import Network.Web.URI
+import System.IO
 import System.IO.Error hiding (try)
 import Text.Printf
 
