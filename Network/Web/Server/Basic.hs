@@ -223,7 +223,7 @@ tryHeadFile' cnf file lang = do
     minfo <- info cnf file'
     case minfo of
       Nothing     -> return Nothing
-      Just (_,mt) -> return $ Just (responseOK ct (utcToDate mt))
+      Just (size,mt) -> return $ Just (responseOK ct size (utcToDate mt))
 
 ----------------------------------------------------------------
 
@@ -272,8 +272,8 @@ response st val len ct modified = makeResponse2 st (Just val) (Just len) kvs
 
 ----------------------------------------------------------------
 
-responseOK :: CT -> HttpDate -> Response
-responseOK ct modified = makeResponse2 OK (Just L.empty) (Just 0) kvs
+responseOK :: CT -> Integer -> HttpDate -> Response
+responseOK ct size modified = makeResponse2 OK (Just L.empty) (Just size) kvs
   where
     kvs = [(FkContentType,ct),(FkLastModified,modified)]
 
