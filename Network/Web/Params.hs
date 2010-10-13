@@ -296,6 +296,7 @@ contentTypeDB = [ (".html", textHtml)
                 , (".zip",  "application/zip")
                 , (".gz",   appOct)
                 , (".ico",  "image/x-icon")
+                , (".svg",  "image/svg+xml")
                 ]
 
 ----------------------------------------------------------------

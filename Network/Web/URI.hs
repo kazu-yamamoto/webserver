@@ -8,7 +8,7 @@ module Network.Web.URI (
     URI, uriScheme, uriAuthority, uriPath, uriQuery, uriFragment
   , URIAuth, uriUserInfo, uriRegName, uriPort
   , parseURI
-  , uriHostName, uriPortNumber, toURL, toURLwoPort
+  , uriHostName, uriPortNumber, toURL, toURLwoPort, toURLPath
   , isAbsoluteURI, unEscapeString, unEscapeByteString
   ) where
 
@@ -106,6 +106,14 @@ toURL uri = uriScheme uri +++ "//" +++ hostServ +++ uriPath uri +++ uriQuery uri
 -}
 toURLwoPort :: URI -> S.ByteString
 toURLwoPort uri = uriScheme uri +++ "//" +++ uriHostName uri +++ uriPath uri +++ uriQuery uri
+  where
+    (+++) = S.append
+
+{-|
+  Making a URL string from 'URI' without port and parameters.
+-}
+toURLPath :: URI -> S.ByteString
+toURLPath uri = uriScheme uri +++ "//" +++ uriHostName uri +++ uriPath uri
   where
     (+++) = S.append
 
