@@ -3,7 +3,6 @@
 module Network.Web.Server.CGI (tryGetCGI) where
 
 import Control.Applicative
-import Control.Concurrent
 import qualified Data.ByteString.Char8      as S
 import qualified Data.ByteString.Lazy.Char8 as L
 import Data.Maybe
@@ -12,7 +11,6 @@ import Network.Web.HTTP
 import Network.Web.Server.Params
 import Network.Web.URI
 import System.IO
-import System.Posix.IO
 import System.Process
 import System.Timeout
 
@@ -25,34 +23,24 @@ tryGetCGI :: BasicConfig -> Request -> CGI -> IO (Maybe Response)
 tryGetCGI cnf req cgi = processCGI `catch` const internalError
   where
     processCGI = do
-      (mrhdl0,mhb)  <- maybeCreateHandle
-      (rhdl1,whdl1) <- createHandle
       let envVars = makeEnv cnf req cgi
-      forkIO $ execCGI (progPath cgi) envVars mrhdl0 (Just whdl1) mhb
-      mrsp <- timeout (10 * 1000000) $ processCGIoutput rhdl1
+          pro = CreateProcess {
+              cmdspec = RawCommand (progPath cgi) []
+            , cwd = Nothing
+            , env = Just envVars
+            , std_in = CreatePipe
+            , std_out = CreatePipe
+            , std_err = Inherit
+            , close_fds = True
+            }
+      (Just whdl,Just rhdl,_,_) <- createProcess pro
+      maybe (return ()) (L.hPut whdl) (reqBody req)
+      hClose whdl
+      mrsp <- timeout (10 * 1000000) $ processCGIoutput rhdl
       maybe internalError (return . Just) mrsp
-    maybeCreateHandle = case reqBody req of
-      Nothing -> return (Nothing,Nothing)
-      Just body -> do
-        (rhdl0,whdl0) <- createHandle
-        return (Just rhdl0, Just (whdl0,body))
     internalError = return $ Just responseInternalServerError
 
-createHandle :: IO (Handle,Handle)
-createHandle = do
-  (rfd,wfd) <- createPipe
-  (,) <$> fdToHandle rfd <*> fdToHandle wfd
-
 type ENVVARS = [(String,String)]
-
-execCGI :: FilePath -> ENVVARS -> Maybe Handle -> Maybe Handle -> Maybe (Handle,L.ByteString) -> IO ()
-execCGI prog envVars sti sto mhb = do
-  runProcess prog [] Nothing (Just envVars) sti sto Nothing
-  case mhb of
-    Nothing -> return ()
-    Just (whdl,body) -> do
-      L.hPut whdl body
-      hClose whdl
 
 makeEnv :: BasicConfig -> Request -> CGI -> ENVVARS
 makeEnv cnf req cgi = addLength . addType . addCookie $ baseEnv
