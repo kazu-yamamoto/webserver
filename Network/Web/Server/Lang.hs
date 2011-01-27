@@ -1,8 +1,10 @@
 module Network.Web.Server.Lang (parseLang) where
 
+import Control.Applicative hiding (many,optional,(<|>))
 import Data.List
 import Data.Ord
-import Parsec
+import Text.Parsec
+import Text.Parsec.String
 
 parseLang :: String -> [String]
 parseLang xs = case parse acceptLanguage "" xs of

@@ -1,6 +1,8 @@
 module Network.Web.Server.Range (skipAndSize) where
 
-import Parsec
+import Control.Applicative hiding (many,optional,(<|>))
+import Text.Parsec
+import Text.Parsec.String
 
 skipAndSize :: String -> Integer -> Maybe (Integer,Integer)
 skipAndSize str size = case parseRange str of
