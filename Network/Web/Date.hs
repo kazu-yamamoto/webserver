@@ -1,9 +1,9 @@
 module Network.Web.Date (parseDate, utcToDate, HttpDate) where
 
+import Control.Monad
 import qualified Data.ByteString.Char8 as S
 import Data.Time
-import Locale
-import Control.Monad
+import System.Locale
 
 type HttpDate = S.ByteString
 

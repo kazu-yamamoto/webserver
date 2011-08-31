@@ -24,8 +24,8 @@ library
                         Network.Web.Server.Lang
                         Network.Web.Server.Params
                         Network.Web.Server.Range
-  Build-Depends:        base >= 4 && < 5, parsec3,
-                        haskell98, network, bytestring, containers,
+  Build-Depends:        base >= 4 && < 5, parsec >= 3,
+                        network, bytestring, containers, old-locale,
                         filepath, time, unix, process, c10k
 Source-Repository head
   Type:                 git
