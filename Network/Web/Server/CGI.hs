@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 
 module Network.Web.Server.CGI (tryGetCGI) where
 
@@ -32,6 +32,9 @@ tryGetCGI cnf req cgi = processCGI `catch` const internalError
             , std_out = CreatePipe
             , std_err = Inherit
             , close_fds = True
+#if __GLASGOW_HASKELL__ >= 702
+            , create_group = True
+#endif
             }
       (Just whdl,Just rhdl,_,_) <- createProcess pro
       maybe (return ()) (L.hPut whdl) (reqBody req)
