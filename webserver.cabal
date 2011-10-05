@@ -1,5 +1,5 @@
 Name:                   webserver
-Version:                0.4.5
+Version:                0.4.6
 Author:                 Kazu Yamamoto <kazu@iij.ad.jp>
 Maintainer:             Kazu Yamamoto <kazu@iij.ad.jp>
 License:                BSD3
@@ -29,4 +29,4 @@ library
                         filepath, time, unix, process, c10k
 Source-Repository head
   Type:                 git
-  Location:             git://github.com/kazu-yamamoto/webserver.git
+  Location:             https://github.com/kazu-yamamoto/webserver
